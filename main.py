@@ -30,18 +30,31 @@ def process_directory(directory, model_name, api_url):
             file_path = os.path.join(root, file)
             if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(file_path)):
                 #
-                # response = process_file(file_path, model_name, api_url)
-                response = "hello world"
+                response = process_file(file_path, model_name, api_url)
+                #response = "hello world"
                 responses.append(response)
     return responses
 
 def process_file(filepath, model_name, api_url):
     with open(filepath, 'r') as file:
         file_content = file.read()
-    prompt = "summarize this code " + file_content
+    prompt = "summarize this code by identifying important functions and classes.  Ignore all helper functions, built in calls, and focus just on the most important code.  Conciseness matters. Here is the code:\n\n " + file_content
     print("prompt is ", prompt)
-    response = requests.post(api_url, json={"model": model_name, "prompt": prompt})
-    return response
+    response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True)
+
+    accumulated_response = ""
+    for line in response.iter_lines():
+        if line:
+            decoded_line = line.decode('utf-8')
+            json_response = json.loads(decoded_line)
+            print(json_response["response"], end=' ', flush=True)
+
+            accumulated_response += json_response.get("response", "")
+
+            if json_response.get("done", False):
+                break
+
+    return accumulated_response
 
 
 def main():

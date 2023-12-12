@@ -37,21 +37,36 @@ def process_directory(directory, model_name, api_url):
 def process_file(filepath, model_name, api_url):
     with open(filepath, 'r') as file:
         file_content = file.read()
-    prompt = "summarize this code by identifying important functions and classes.  Ignore all helper functions, built in calls, and focus just on the most important code.  Conciseness matters. Here is the code:\n\n " + file_content
+    prompt = "summarize this code by identifying important functions and classes. Ignore all helper functions, built in calls, and focus just on the most important code. Conciseness matters. Here is the code:\n\n " + file_content
+    print("=================================================================")
+    print("processing file: ", filepath)
     print("prompt is ", prompt)
-    response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True)
 
-    accumulated_response = ""
-    for line in response.iter_lines():
-        if line:
-            decoded_line = line.decode('utf-8')
-            json_response = json.loads(decoded_line)
-            print(json_response["response"], end='', flush=True)
+    # Number of retries
+    retries = 1
+    while retries >= 0:
+        try:
+            response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True, timeout=60)
 
-            accumulated_response += json_response.get("response", "")
+            accumulated_response = ""
+            for line in response.iter_lines():
+                if line:
+                    decoded_line = line.decode('utf-8')
+                    json_response = json.loads(decoded_line)
+                    print(json_response["response"], end='', flush=True)
 
-            if json_response.get("done", False):
-                break
+                    accumulated_response += json_response.get("response", "")
+
+                    if json_response.get("done", False):
+                        return accumulated_response
+            break  # Break out of the loop if successful
+
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            retries -= 1
+            if retries < 0:
+                print("Retrying failed, no more attempts left.")
+                return None
 
     return accumulated_response
 

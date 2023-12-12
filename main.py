@@ -46,7 +46,7 @@ def process_file(filepath, model_name, api_url):
         if line:
             decoded_line = line.decode('utf-8')
             json_response = json.loads(decoded_line)
-            print(json_response["response"], end=' ', flush=True)
+            print(json_response["response"], end='', flush=True)
 
             accumulated_response += json_response.get("response", "")
 

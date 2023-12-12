@@ -29,10 +29,9 @@ def process_directory(directory, model_name, api_url):
         for file in files:
             file_path = os.path.join(root, file)
             if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(file_path)):
-                #
                 response = process_file(file_path, model_name, api_url)
-                #response = "hello world"
-                responses.append(response)
+                summary = "#Summary for " + file_path + ":\n" + response + "\n\n"
+                responses.append(summary)
     return responses
 
 def process_file(filepath, model_name, api_url):
@@ -59,18 +58,33 @@ def process_file(filepath, model_name, api_url):
 
 def main():
     parser = argparse.ArgumentParser(description="Process files for summarization")
-    parser.add_argument('directory', nargs='?', default=os.getcwd(),
-                        help='Directory to process (defaults to current directory)')
+    parser.add_argument("file_or_directory", nargs='?', default=os.getcwd())
+    parser.add_argument("--model", default="codellama:34b")
+    parser.add_argument("--api_url", default="http://localhost:11434/api/generate") 
+    parser.add_argument("--output", default="apispec.md")
+
     args = parser.parse_args()
 
-    directory = args.directory
-    model_name = "codellama:34b" 
-    api_url = "http://localhost:11434/api/generate" # Replace with your API URL
+    arg = args.file_or_directory
+    #figure out if it is a file or directory
+    if os.path.isdir(arg):
+        directory = arg
+        isDirectory = True
+    elif os.path.isfile(arg):
+        file = os.path.dirname(arg)
+    else:
+        print("Error: file or directory not found")
+        return
+    model_name = args.model
+    api_url = args.api_url
 
-    responses = process_directory(directory, model_name, api_url)
+    if isDirectory:
+        responses = process_directory(directory, model_name, api_url)
+    else:
+        responses = process_file(file, model_name, api_url)
     print('responses are')
     print(responses)
-    with open('output.json', 'w') as outfile:
+    with open(args.output, 'w') as outfile:
         #responses is a string, just write it to the file
         #responses is an array, make it a string and write it to the file
         data = '\n'.join(responses)

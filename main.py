@@ -86,7 +86,8 @@ def main():
         directory = arg
         isDirectory = True
     elif os.path.isfile(arg):
-        file = os.path.dirname(arg)
+        file = arg
+        isDirectory = False
     else:
         print("Error: file or directory not found")
         return

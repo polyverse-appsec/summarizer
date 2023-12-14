@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+    {
+        "name": "Boost Summarizer",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/main.py",
+        "cwd": "${workspaceFolder}",
+        "args": [
+            "--model",
+            "gpt-4",
+            "../../boost_demo/"
+        ],
+        "console": "integratedTerminal",
+        "justMyCode": true
+    }
+    ]
+}

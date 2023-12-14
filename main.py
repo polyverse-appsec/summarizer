@@ -2,11 +2,37 @@ import argparse
 import os
 import requests
 import json
-import fnmatch
 import pathspec
+import subprocess
+import re
+
+gpt4 = "gpt-4"
+codellama = "codellama:34b"
+
+
+def get_github_token():
+    try:
+        # Execute the command to get the token status
+        result = subprocess.run(["gh", "auth", "status", "--show-token"], check=True, capture_output=True, text=True)
+        stdout = result.stdout
+
+        # Parse the output to extract the token
+        token_match = re.search(r'✓ Token: (\S+)', stdout)
+        if token_match:
+            token = token_match.group(1)
+            return token
+        else:
+            print("Failed to parse GitHub token.")
+            return None
+
+    except subprocess.CalledProcessError as error:
+        print(f"GitHub CLI (gh) failed authorization: {error}")
+        return None
+
 
 def is_hidden(filepath):
     return os.path.basename(filepath).startswith('.')
+
 
 def read_gitignore(directory):
     gitignore_path = os.path.join(directory, '.gitignore')
@@ -16,12 +42,14 @@ def read_gitignore(directory):
         spec = pathspec.PathSpec.from_lines('gitwildmatch', file)
     return spec
 
+
 def is_source_code(file):
     source_code_extensions = ['.py', '.js', '.java', '.cpp', '.c', '.cs', '.ts', '.php', '.rb', '.go']
     _, ext = os.path.splitext(file)
     return ext in source_code_extensions
 
-def process_directory(directory, model_name, api_url):
+
+def process_directory(directory, model_name, api_url, token):
     responses = []
     gitignore_spec = read_gitignore(directory)
     for root, dirs, files in os.walk(directory):
@@ -29,12 +57,14 @@ def process_directory(directory, model_name, api_url):
         for file in files:
             file_path = os.path.join(root, file)
             if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(file_path)):
-                response = process_file(file_path, model_name, api_url)
+                response = process_file(file_path, model_name, api_url, token)
+                response = response if response else "None"
                 summary = "#Summary for " + file_path + ":\n" + response + "\n\n"
                 responses.append(summary)
     return responses
 
-def process_file(filepath, model_name, api_url):
+
+def process_file(filepath, model_name, api_url, token):
     with open(filepath, 'r') as file:
         file_content = file.read()
     prompt = "summarize this code by identifying important functions and classes. Ignore all helper functions, built in calls, and focus just on the most important code. Conciseness matters. Here is the code:\n\n " + file_content
@@ -46,7 +76,12 @@ def process_file(filepath, model_name, api_url):
     retries = 1
     while retries >= 0:
         try:
-            response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True, timeout=60)
+            if token is not None:
+                response = requests.post(api_url, json={"model": model_name, "prompt": prompt, "session": token,
+                                         "organization": "polyverse.com", "version": "1.0.0"},
+                                         timeout=60)
+            else:
+                response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True, timeout=60)
 
             accumulated_response = ""
             for line in response.iter_lines():
@@ -74,14 +109,16 @@ def process_file(filepath, model_name, api_url):
 def main():
     parser = argparse.ArgumentParser(description="Process files for summarization")
     parser.add_argument("file_or_directory", nargs='?', default=os.getcwd())
-    parser.add_argument("--model", default="codellama:34b")
-    parser.add_argument("--api_url", default="http://localhost:11434/api/generate") 
-    parser.add_argument("--output", default="apispec.md")
+
+    # model can be codellama:34b or gpt-4
+    parser.add_argument("--model", default=codellama)
+    parser.add_argument("--api_url", default="http://localhost:11434/api/generate")
+    parser.add_argument("--output")
 
     args = parser.parse_args()
 
     arg = args.file_or_directory
-    #figure out if it is a file or directory
+    # figure out if it is a file or directory
     if os.path.isdir(arg):
         directory = arg
         isDirectory = True
@@ -92,20 +129,35 @@ def main():
         print("Error: file or directory not found")
         return
     model_name = args.model
-    api_url = args.api_url
+
+    if model_name == gpt4:
+        token = get_github_token()
+        api_url = 'http://127.0.0.1:8000/customprocess'
+    else:
+        api_url = args.api_url
+        token = None
 
     if isDirectory:
-        responses = process_directory(directory, model_name, api_url)
+        responses = process_directory(directory, model_name, api_url, token)
     else:
-        responses = process_file(file, model_name, api_url)
+        responses = process_file(file, model_name, api_url, token)
     print('responses are')
     print(responses)
-    with open(args.output, 'w') as outfile:
-        #responses is a string, just write it to the file
-        #responses is an array, make it a string and write it to the file
+    if args.output:
+        output = args.output
+    else:
+        if isDirectory:
+            output = os.path.join(directory, 'apispec.md')
+        else:
+            output = os.path.join(file + '.apispec.md')
+        output = 'apispec.md'
+    with open(output, 'w') as outfile:
+        # responses is a string, just write it to the file
+        # responses is an array, make it a string and write it to the file
         data = '\n'.join(responses)
         outfile.write(data)
-        #json.dump(responses, outfile)
+        # json.dump(responses, outfile)
+
 
 if __name__ == "__main__":
     main()

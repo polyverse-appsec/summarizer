@@ -13,7 +13,7 @@
             "gpt-4",
             "../../boost_demo/",
             "--organization",
-            "polyverse",
+            "polyverse-appsec",
         ],
         "console": "integratedTerminal",
         "justMyCode": true

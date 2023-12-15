@@ -102,8 +102,12 @@ def process_file(filepath, model_name, api_url, token, organization):
             one_minute = 60
 
             if token is not None:
-                messages = [{"role": "user", "content": prompt}]
-                response = requests.post(api_url, json={"model": model_name, "messages": json.dumps(messages),  # "prompt": prompt, "code": file_content,
+                # messages = [{"role": "user", "content": prompt}]
+                # response = requests.post(api_url, json={"model": model_name, "messages": json.dumps(messages),  # "prompt": prompt, "code": file_content,
+                #                          "session": token, "organization": organization, "version": "1.0.0"},
+                #                          timeout=3 * one_minute)
+
+                response = requests.post(api_url, json={"code": file_content,
                                          "session": token, "organization": organization, "version": "1.0.0"},
                                          timeout=3 * one_minute)
             else:
@@ -170,7 +174,8 @@ def main():
             print("Error: GitHub token not found")
             return
         # api_url = 'http://127.0.0.1:8000/customprocess'
-        api_url = 'https://7ntcvdqj4r23uklomzmeiwq7nq0dhblq.lambda-url.us-west-2.on.aws/'
+        # api_url = 'https://7ntcvdqj4r23uklomzmeiwq7nq0dhblq.lambda-url.us-west-2.on.aws/'
+        api_url = 'http://127.0.0.1:8000/codesummarizer'
     else:
         api_url = args.api_url
         token = None

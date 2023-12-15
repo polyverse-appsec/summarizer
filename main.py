@@ -187,8 +187,7 @@ def main():
         if isDirectory:
             output = os.path.join(directory, 'apispec.md')
         else:
-            output = os.path.join(file + '.apispec.md')
-        output = 'apispec.md'
+            output = file + '.apispec.md'
 
     with open(output, 'w') as outfile:
         # responses is a string, just write it to the file

@@ -35,12 +35,31 @@ def is_hidden(filepath):
 
 
 def read_gitignore(directory):
+    # Function to read the contents of a file as lines
+    def read_lines(filepath):
+        with open(filepath, 'r') as file:
+            return file.readlines()
+
+    # Paths for the .gitignore and .boostignore files
     gitignore_path = os.path.join(directory, '.gitignore')
-    if not os.path.exists(gitignore_path):
-        return None
-    with open(gitignore_path, 'r') as file:
-        spec = pathspec.PathSpec.from_lines('gitwildmatch', file)
+    boostignore_path = os.path.join(directory, '.boostignore')
+
+    # Initialize an empty list for patterns
+    patterns = []
+
+    # Read patterns from .gitignore if it exists
+    if os.path.exists(gitignore_path):
+        patterns.extend(read_lines(gitignore_path))
+
+    # Read patterns from .boostignore if it exists
+    if os.path.exists(boostignore_path):
+        patterns.extend(read_lines(boostignore_path))
+
+    # Create a PathSpec from the combined patterns
+    spec = pathspec.PathSpec.from_lines('gitwildmatch', patterns)
+
     return spec
+
 
 
 def is_source_code(file):
@@ -156,8 +175,8 @@ def main():
     else:
         responses = process_file(file, model_name, api_url, token, organization)
 
-    print('Responses are')
-    print(responses)
+    #print('Responses are')
+    #print(responses)
     if args.output:
         output = args.output
     else:

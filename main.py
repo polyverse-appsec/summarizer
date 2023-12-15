@@ -88,8 +88,8 @@ def process_file(filepath, model_name, api_url, token, organization):
         file_content = file.read()
     prompt = "Summarize this code by identifying important functions and classes. Ignore all helper functions, built in calls, and focus just on the most important code. Conciseness matters."
 
-    if model_name != gpt4:
-        prompt += "  Here is the code:\n\n " + file_content
+#     if model_name != gpt4:
+    prompt += "  Here is the code:\n\n " + file_content
 
     print("=================================================================")
     print("Processing file: ", filepath)
@@ -102,7 +102,8 @@ def process_file(filepath, model_name, api_url, token, organization):
             one_minute = 60
 
             if token is not None:
-                response = requests.post(api_url, json={"model": model_name, "prompt": prompt, "code": file_content,
+                messages = [{"role": "user", "content": prompt}]
+                response = requests.post(api_url, json={"model": model_name, "messages": json.dumps(messages),  # "prompt": prompt, "code": file_content,
                                          "session": token, "organization": organization, "version": "1.0.0"},
                                          timeout=3 * one_minute)
             else:

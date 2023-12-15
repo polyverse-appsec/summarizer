@@ -165,6 +165,9 @@ def main():
 
     if model_name == gpt4:
         token = get_github_token()
+        if token is None:
+            print("Error: GitHub token not found")
+            return
         api_url = 'http://127.0.0.1:8000/customprocess'
     else:
         api_url = args.api_url

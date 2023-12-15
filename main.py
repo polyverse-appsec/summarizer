@@ -17,9 +17,10 @@ def get_github_token():
         stdout = result.stdout
 
         # Parse the output to extract the token
-        token_match = re.search(r'✓ Token: (\S+)', stdout)
+        # valid strings are of the form some characters followed by a space followed by Token: followed by the token
+        token_match = re.search(r'(\S+) Token: (\S+)', stdout)
         if token_match:
-            token = token_match.group(1)
+            token = token_match.group(2)
             return token
         else:
             print("Failed to parse GitHub token.")

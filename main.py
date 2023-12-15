@@ -80,24 +80,31 @@ def process_file(filepath, model_name, api_url, token, organization):
     retries = 1
     while retries >= 0:
         try:
+            one_minute = 60
+
             if token is not None:
                 response = requests.post(api_url, json={"model": model_name, "prompt": prompt, "code": file_content,
                                          "session": token, "organization": organization, "version": "1.0.0"},
-                                         timeout=60)
+                                         timeout=3 * one_minute)
             else:
-                response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True, timeout=60)
+                response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True, timeout=one_minute)
 
             accumulated_response = ""
             for line in response.iter_lines():
                 if line:
                     decoded_line = line.decode('utf-8')
                     json_response = json.loads(decoded_line)
-                    print(json_response["response"], end='', flush=True)
 
-                    accumulated_response += json_response.get("response", "")
-
-                    if json_response.get("done", False):
+                    if model_name == gpt4:
+                        print(json_response["analysis"], end='', flush=True)
+                        accumulated_response += json_response.get("analysis", "")
                         return accumulated_response
+                    else:
+                        print(json_response["response"], end='', flush=True)
+
+                        accumulated_response += json_response.get("response", "")
+                        if json_response.get("done", False):
+                            return accumulated_response
             break  # Break out of the loop if successful
 
         except requests.exceptions.RequestException as e:

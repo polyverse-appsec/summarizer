@@ -49,7 +49,7 @@ def is_source_code(file):
     return ext in source_code_extensions
 
 
-def process_directory(directory, model_name, api_url, token):
+def process_directory(directory, model_name, api_url, token, organization):
     responses = []
     gitignore_spec = read_gitignore(directory)
     for root, dirs, files in os.walk(directory):
@@ -57,28 +57,32 @@ def process_directory(directory, model_name, api_url, token):
         for file in files:
             file_path = os.path.join(root, file)
             if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(file_path)):
-                response = process_file(file_path, model_name, api_url, token)
+                response = process_file(file_path, model_name, api_url, token, organization)
                 response = response if response else "None"
                 summary = "#Summary for " + file_path + ":\n" + response + "\n\n"
                 responses.append(summary)
     return responses
 
 
-def process_file(filepath, model_name, api_url, token):
+def process_file(filepath, model_name, api_url, token, organization):
     with open(filepath, 'r') as file:
         file_content = file.read()
-    prompt = "summarize this code by identifying important functions and classes. Ignore all helper functions, built in calls, and focus just on the most important code. Conciseness matters. Here is the code:\n\n " + file_content
+    prompt = "Summarize this code by identifying important functions and classes. Ignore all helper functions, built in calls, and focus just on the most important code. Conciseness matters."
+
+    if model_name != gpt4:
+        prompt += "  Here is the code:\n\n " + file_content
+
     print("=================================================================")
-    print("processing file: ", filepath)
-    print("prompt is ", prompt)
+    print("Processing file: ", filepath)
+    print("Prompt is ", prompt)
 
     # Number of retries
     retries = 1
     while retries >= 0:
         try:
             if token is not None:
-                response = requests.post(api_url, json={"model": model_name, "prompt": prompt, "session": token,
-                                         "organization": "polyverse.com", "version": "1.0.0"},
+                response = requests.post(api_url, json={"model": model_name, "prompt": prompt, "code": file_content,
+                                         "session": token, "organization": organization, "version": "1.0.0"},
                                          timeout=60)
             else:
                 response = requests.post(api_url, json={"model": model_name, "prompt": prompt}, stream=True, timeout=60)
@@ -112,8 +116,9 @@ def main():
 
     # model can be codellama:34b or gpt-4
     parser.add_argument("--model", default=codellama)
+    parser.add_argument("--organization", nargs='?')
     parser.add_argument("--api_url", default="http://localhost:11434/api/generate")
-    parser.add_argument("--output")
+    parser.add_argument("--output", nargs='?')
 
     args = parser.parse_args()
 
@@ -128,6 +133,8 @@ def main():
     else:
         print("Error: file or directory not found")
         return
+
+    organization = args.organization
     model_name = args.model
 
     if model_name == gpt4:
@@ -138,10 +145,11 @@ def main():
         token = None
 
     if isDirectory:
-        responses = process_directory(directory, model_name, api_url, token)
+        responses = process_directory(directory, model_name, api_url, token, organization)
     else:
-        responses = process_file(file, model_name, api_url, token)
-    print('responses are')
+        responses = process_file(file, model_name, api_url, token, organization)
+
+    print('Responses are')
     print(responses)
     if args.output:
         output = args.output
@@ -151,6 +159,7 @@ def main():
         else:
             output = os.path.join(file + '.apispec.md')
         output = 'apispec.md'
+
     with open(output, 'w') as outfile:
         # responses is a string, just write it to the file
         # responses is an array, make it a string and write it to the file

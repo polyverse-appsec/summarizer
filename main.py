@@ -169,7 +169,8 @@ def main():
         if token is None:
             print("Error: GitHub token not found")
             return
-        api_url = 'http://127.0.0.1:8000/customprocess'
+        # api_url = 'http://127.0.0.1:8000/customprocess'
+        api_url = 'https://7ntcvdqj4r23uklomzmeiwq7nq0dhblq.lambda-url.us-west-2.on.aws/'
     else:
         api_url = args.api_url
         token = None

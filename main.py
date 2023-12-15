@@ -61,7 +61,6 @@ def read_gitignore(directory):
     return spec
 
 
-
 def is_source_code(file):
     source_code_extensions = ['.py', '.js', '.java', '.cpp', '.c', '.cs', '.ts', '.php', '.rb', '.go']
     _, ext = os.path.splitext(file)
@@ -178,8 +177,8 @@ def main():
     else:
         responses = process_file(file, model_name, api_url, token, organization)
 
-    #print('Responses are')
-    #print(responses)
+    # print('Responses are')
+    # print(responses)
     if args.output:
         output = args.output
     else:

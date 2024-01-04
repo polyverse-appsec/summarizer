@@ -3,17 +3,25 @@
     "configurations": [
 
     {
-        "name": "Boost Summarizer",
+        "name": "Combine Source Files",
         "type": "python",
         "request": "launch",
         "program": "${workspaceFolder}/main.py",
-        "cwd": "${workspaceFolder}",
+        "cwd": "/Users/stephenfisher/development/github-vs-boost/sara",
         "args": [
-            "--model",
-            "gpt-4",
-            "../../boost_demo/",
-            "--organization",
-            "polyverse-appsec",
+            "--rawonly",
+        ],
+        "console": "integratedTerminal",
+        "justMyCode": true
+    },
+    {
+        "name": "Summarize Specs",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/main.py",
+        "cwd": "/Users/stephenfisher/development/github-vs-boost/sara",
+        "args": [
+            "",
         ],
         "console": "integratedTerminal",
         "justMyCode": true

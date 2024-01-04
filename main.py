@@ -97,7 +97,7 @@ def process_directory(directory, model_name, api_url, token, organization, combi
                         return
 
                 if combineRawContents:
-                    rawContents = "#Contents of " + rel_path + ":\n" + response + "\n\n"
+                    rawContents = "# Contents of " + rel_path + ":\n" + response + "\n\n"
                     responses.append(rawContents)
                 else:
                     summary = "# Summary for " + rel_path + ":\n" + response + "\n\n"
@@ -118,9 +118,11 @@ def process_file(filepath, model_name, api_url, token, organization, combineRawC
 #     if model_name != gpt4:
     prompt += "  Here is the code:\n\n " + file_content
 
+    rel_path = os.path.relpath(filepath, os.getcwd())
+
     if verbose:
         print("=================================================================")
-    print("Processing file: ", filepath)
+    print("Processing file: ", rel_path)
     if verbose:
         print("Prompt is ", prompt)
 

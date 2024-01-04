@@ -239,7 +239,7 @@ def main():
     if args.output:
         output = args.output
     else:
-        filename = 'aispec.md' if combineRawContents is None else 'combined_files.md'
+        filename = 'aispec.md' if combineRawContents is None else 'allfiles_combined.md'
         if isDirectory:
             output = os.path.join(directory, filename)
         else:

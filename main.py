@@ -66,9 +66,10 @@ def read_gitignore(directory):
 
 
 def is_source_code(file):
-    source_code_extensions = ['.py', '.js', '.java', '.cpp', '.c', '.cs', '.ts', '.php', '.rb', '.go']
+    non_source_code_extensions = ['.png', '.ico']
+
     _, ext = os.path.splitext(file)
-    return ext in source_code_extensions
+    return ext not in non_source_code_extensions
 
 
 def process_directory(directory, model_name, api_url, token, organization, combineRawContents, verbose):
@@ -108,8 +109,12 @@ def process_directory(directory, model_name, api_url, token, organization, combi
 
 
 def process_file(filepath, model_name, api_url, token, organization, combineRawContents, verbose):
-    with open(filepath, 'r') as file:
-        file_content = file.read()
+    try:
+        with open(filepath, 'r') as file:
+            file_content = file.read()
+    except Exception as e:
+        print(f"Error reading file {filepath}: {e}")
+        return None
 
     if combineRawContents:
         return file_content
@@ -244,6 +249,9 @@ def main():
             output = os.path.join(directory, filename)
         else:
             output = file + '.' + filename
+
+    print("-----------------")
+    print(f"Writing output to {output}")
 
     with open(output, 'w') as outfile:
         # responses is a string, just write it to the file

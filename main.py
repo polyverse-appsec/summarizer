@@ -99,6 +99,7 @@ def process_directory(directory, model_name, api_url, token, organization, combi
                 if combineRawContents:
                     rawContents = "# Contents of " + rel_path + ":\n" + response + "\n\n"
                     responses.append(rawContents)
+                    print("Combining file: ", rel_path)
                 else:
                     summary = "# Summary for " + rel_path + ":\n" + response + "\n\n"
                     responses.append(summary)
@@ -238,10 +239,11 @@ def main():
     if args.output:
         output = args.output
     else:
+        filename = 'aispec.md' if combineRawContents is None else 'combined_files.md'
         if isDirectory:
-            output = os.path.join(directory, 'apispec.md')
+            output = os.path.join(directory, filename)
         else:
-            output = file + '.apispec.md'
+            output = file + '.' + filename
 
     with open(output, 'w') as outfile:
         # responses is a string, just write it to the file

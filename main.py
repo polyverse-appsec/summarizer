@@ -9,6 +9,9 @@ import re
 gpt4 = "gpt-4"
 codellama = "codellama:34b"
 
+files_processed = 0
+files_errored = 0
+
 
 def get_github_token():
     try:
@@ -68,7 +71,7 @@ def is_source_code(file):
     return ext in source_code_extensions
 
 
-def process_directory(directory, model_name, api_url, token, organization):
+def process_directory(directory, model_name, api_url, token, organization, combineRawContents, verbose):
     responses = []
     gitignore_spec = read_gitignore(directory)
     for root, dirs, files in os.walk(directory):
@@ -76,24 +79,50 @@ def process_directory(directory, model_name, api_url, token, organization):
         for file in files:
             file_path = os.path.join(root, file)
             if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(file_path)):
-                response = process_file(file_path, model_name, api_url, token, organization)
-                response = response if response else "None"
-                summary = "#Summary for " + file_path + ":\n" + response + "\n\n"
-                responses.append(summary)
+                response = process_file(file_path, model_name, api_url, token, organization, combineRawContents, verbose)
+
+                rel_path = os.path.relpath(file_path, os.getcwd())
+
+                if response is not None:
+                    global files_processed
+                    files_processed += 1
+                else:
+                    response = "None"
+                    global files_errored
+                    files_errored += 1
+
+                    # if we errored on very first attempt, then just abort - since we'll likely fail them all
+                    if files_processed == 0:
+                        print("Error: No files processed. Please check that the server is running and the API URL is correct.")
+                        return
+
+                if combineRawContents:
+                    rawContents = "#Contents of " + rel_path + ":\n" + response + "\n\n"
+                    responses.append(rawContents)
+                else:
+                    summary = "# Summary for " + rel_path + ":\n" + response + "\n\n"
+                    responses.append(summary)
+
     return responses
 
 
-def process_file(filepath, model_name, api_url, token, organization):
+def process_file(filepath, model_name, api_url, token, organization, combineRawContents, verbose):
     with open(filepath, 'r') as file:
         file_content = file.read()
+
+    if combineRawContents:
+        return file_content
+
     prompt = "Summarize this code by identifying important functions and classes. Ignore all helper functions, built in calls, and focus just on the most important code. Conciseness matters."
 
 #     if model_name != gpt4:
     prompt += "  Here is the code:\n\n " + file_content
 
-    print("=================================================================")
+    if verbose:
+        print("=================================================================")
     print("Processing file: ", filepath)
-    print("Prompt is ", prompt)
+    if verbose:
+        print("Prompt is ", prompt)
 
     # Number of retries
     retries = 1
@@ -120,11 +149,13 @@ def process_file(filepath, model_name, api_url, token, organization):
                     json_response = json.loads(decoded_line)
 
                     if model_name == gpt4:
-                        print(json_response["analysis"], end='', flush=True)
+                        if verbose:
+                            print(json_response["analysis"], end='', flush=True)
                         accumulated_response += json_response.get("analysis", "")
                         return accumulated_response
                     else:
-                        print(json_response["response"], end='', flush=True)
+                        if verbose:
+                            print(json_response["response"], end='', flush=True)
 
                         accumulated_response += json_response.get("response", "")
                         if json_response.get("done", False):
@@ -132,10 +163,11 @@ def process_file(filepath, model_name, api_url, token, organization):
             break  # Break out of the loop if successful
 
         except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
+            if verbose:
+                print(f"Request failed: {e}")
             retries -= 1
             if retries < 0:
-                print("Retrying failed, no more attempts left.")
+                print(f"Retrying failed, no more attempts left. Last error: {e}")
                 return None
 
     return accumulated_response
@@ -146,10 +178,12 @@ def main():
     parser.add_argument("file_or_directory", nargs='?', default=os.getcwd())
 
     # model can be codellama:34b or gpt-4
-    parser.add_argument("--model", default=codellama)
+    parser.add_argument("--model", default=gpt4)
+    parser.add_argument("--verbose", nargs='?')
     parser.add_argument("--organization", nargs='?')
     parser.add_argument("--api_url", default="http://localhost:11434/api/generate")
     parser.add_argument("--output", nargs='?')
+    parser.add_argument("--rawonly", action='store_true', help="Combine raw contents only")
 
     args = parser.parse_args()
 
@@ -167,8 +201,11 @@ def main():
 
     organization = args.organization
     model_name = args.model
+    combineRawContents = args.rawonly
 
     if model_name == gpt4:
+        if organization is None:
+            organization = "polyverse-appsec"
         token = get_github_token()
         if token is None:
             print("Error: GitHub token not found")
@@ -183,9 +220,16 @@ def main():
         token = None
 
     if isDirectory:
-        responses = process_directory(directory, model_name, api_url, token, organization)
+        responses = process_directory(directory, model_name, api_url, token, organization, combineRawContents, args.verbose)
     else:
-        responses = process_file(file, model_name, api_url, token, organization)
+        responses = process_file(file, model_name, api_url, token, organization, combineRawContents, args.verbose)
+
+        if responses is not None:
+            global files_processed
+            files_processed += 1
+        else:
+            global files_errored
+            files_errored += 1
 
     # print('Responses are')
     # print(responses)

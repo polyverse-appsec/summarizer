@@ -21,7 +21,6 @@
         "program": "${workspaceFolder}/main.py",
         "cwd": "/Users/stephenfisher/development/github-vs-boost/sara",
         "args": [
-            "",
         ],
         "console": "integratedTerminal",
         "justMyCode": true

@@ -39,10 +39,10 @@ def is_hidden(filepath):
 
 
 def read_gitignore(directory):
-    # Function to read the contents of a file as lines
+    # Function to read the contents of a file as lines and strip newline characters
     def read_lines(filepath):
         with open(filepath, 'r') as file:
-            return file.readlines()
+            return [line.strip() for line in file]
 
     # Paths for the .gitignore and .boostignore files
     gitignore_path = os.path.join(directory, '.gitignore')
@@ -51,11 +51,11 @@ def read_gitignore(directory):
     # Initialize an empty list for patterns
     patterns = []
 
-    # Read patterns from .gitignore if it exists
+    # Read patterns from .gitignore if it exists and strip newline characters
     if os.path.exists(gitignore_path):
         patterns.extend(read_lines(gitignore_path))
 
-    # Read patterns from .boostignore if it exists
+    # Read patterns from .boostignore if it exists and strip newline characters
     if os.path.exists(boostignore_path):
         patterns.extend(read_lines(boostignore_path))
 
@@ -79,10 +79,10 @@ def process_directory(directory, model_name, api_url, token, organization, combi
         dirs[:] = [d for d in dirs if not is_hidden(os.path.join(root, d))]
         for file in files:
             file_path = os.path.join(root, file)
-            if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(file_path)):
-                response = process_file(file_path, model_name, api_url, token, organization, combineRawContents, verbose)
+            rel_path = os.path.relpath(file_path, os.getcwd())
 
-                rel_path = os.path.relpath(file_path, os.getcwd())
+            if is_source_code(file) and (not gitignore_spec or not gitignore_spec.match_file(rel_path)):
+                response = process_file(file_path, model_name, api_url, token, organization, combineRawContents, verbose)
 
                 if response is not None:
                     global files_processed
